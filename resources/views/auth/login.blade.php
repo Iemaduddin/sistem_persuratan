@@ -34,7 +34,7 @@
                             <li></li>
                         </ul>
                         <!-- end bubble effect -->
-                        <div class="card h-50 w-50 d-flex justify-content-center align-items-center">
+                        <div class="card d-flex justify-content-center align-items-center" style="height:31rem;width:60rem">
                             <div class="row h-100 w-100">
                                 <div class="col-xxl-6 col-md-12 col-sm-12 card-body p-5 pt-4">
                                     <center>
@@ -96,6 +96,17 @@
                                             <button class="btn btn-primary w-100 waves-effect waves-light"
                                                 type="submit">Log
                                                 In</button>
+                                        </div>
+
+                                        <p class="text-center">&mdash; Or Login With &mdash;</p>
+
+                                        <div class="mb-3 text-center">
+                                            <a href="{{ route('redirectProvider', ['provider' => 'google']) }}"
+                                                class="btn btn-danger waves-effect waves-light rounded-5" type="submit"><i
+                                                    class="mdi mdi-18px mdi-google"></i></a>
+                                            <a href="{{ route('redirectProvider', ['provider' => 'github']) }}"
+                                                class="btn btn-dark waves-effect waves-light rounded-5" type="submit"><i
+                                                    class="mdi mdi-18px mdi-github"></i></a>
                                         </div>
                                     </form>
                                 </div>

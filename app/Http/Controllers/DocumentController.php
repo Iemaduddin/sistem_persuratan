@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Yaza\LaravelGoogleDriveStorage\Gdrive;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Requests\UpdateDocumentRequest;
 
@@ -41,6 +42,16 @@ class DocumentController extends Controller
             ->orderBy('no_surat', 'desc')
             ->get();
         return view('document.surat.suratKeluar-management', compact('suratKeluar'));
+    }
+    public function showSuratKeluar($id)
+    {
+        $suratKeluar = Document::where('category', '=', 'Surat Keluar')
+            ->orderBy('no_surat', 'desc')
+            ->get();
+        $document = Document::find($id);
+        dd($document);
+        $suratKeluarFromGdrive = Gdrive::get('FromLaravel/' . $document->fileDocument);
+        return view('document.surat.suratKeluar-management', compact('suratKeluar', 'suratKeluarFromGdrive'));
     }
     public function proposalHmti()
     {
@@ -125,18 +136,21 @@ class DocumentController extends Controller
                 $departName = $department->name;
                 if ($request->eventCategory == 'Proker') {
                     if ($request->category == 'Surat Keluar' && !$request->has('needCategory')) {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $departName . '/Proker/Surat/' . $fileName, $file);
                         $file->storeAs("HMTI/{$categoryDoc}/{$departName}/Proker/Surat/", $fileName, 'public');
                         $fileSave = 'HMTI/' . $categoryDoc . '/' . $departName . '/Proker/Surat/' . $fileName;
                         $documents->fileDocument = $fileSave;
                     }
                 } elseif ($request->eventCategory == 'Agenda') {
                     if ($request->category == 'Surat Keluar') {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $departName . '/Agenda/' . $fileName, $file);
                         $file->storeAs("HMTI/{$categoryDoc}/{$departName}/Agenda/", $fileName, 'public');
                         $fileSave = 'HMTI/' . $categoryDoc . '/' . $departName . '/Agenda/' . $fileName;
                         $documents->fileDocument = $fileSave;
                     }
                 }
                 if (Str::startsWith($request->category, 'Proposal') || Str::startsWith($request->category, 'LPJ')) {
+                    Gdrive::put('FromLaravel/HMTI/Proposal_LPJ/' . $departName . '/' . $request->event . '/' . $fileName, $file);
                     $file->storeAs("HMTI/Proposal_LPJ/{$departName}/{$request->event}", $fileName, 'public');
                     $fileSave = 'HMTI/Proposal_LPJ' . '/' . $departName . '/' . $request->event . '/' . $fileName;
                     $documents->fileDocument = $fileSave;
@@ -145,10 +159,12 @@ class DocumentController extends Controller
                 if ($request->category == 'Surat Keluar' && $request->has('allotment')) {
                     // Selain 
                     if ($request->other_needCategory == null) {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $request->allotment . '/' . $fileName, $file);
                         $file->storeAs("HMTI/{$categoryDoc}/{$request->allotment}/", $fileName, 'public');
                         $fileSave = 'HMTI/' . $categoryDoc . '/' . $request->allotment . '/' . $fileName;
                         $documents->fileDocument = $fileSave;
                     } else {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $request->other_needCategory . '/' . $fileName, $file);
                         $file->storeAs("HMTI/{$categoryDoc}/{$request->other_needCategory}/", $fileName, 'public');
                         $fileSave = 'HMTI/' . $categoryDoc . '/' .  $request->other_needCategory . '/' . $fileName;
                         $documents->fileDocument = $fileSave;
@@ -161,14 +177,17 @@ class DocumentController extends Controller
                     } else {
                         $senderName = $request->other_sender;
                     }
+                    Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $senderName . '/' . $fileName, $file);
                     $file->storeAs("HMTI/{$categoryDoc}/{$senderName}/", $fileName, 'public');
                     $fileSave = 'HMTI/' . $categoryDoc . '/' . $senderName . '/' . $fileName;
                     $documents->fileDocument = $fileSave;
                 } elseif (Str::endsWith($request->category, 'WRI')) {
+                    Gdrive::put('FromLaravel/Naungan/WRI/' . $request->event . '/' . $fileName, $file);
                     $file->storeAs("Naungan/WRI/{$request->event}", $fileName, 'public');
                     $fileSave =  'Naungan/WRI/' . $request->event . '/' . $fileName;
                     $documents->fileDocument = $fileSave;
                 } elseif (Str::endsWith($request->category, 'ITDEC')) {
+                    Gdrive::put('FromLaravel/Naungan/ITDEC/' . $request->event . '/' . $fileName, $file);
                     $file->storeAs("Naungan/ITDEC/{$request->event}", $fileName, 'public');
                     $fileSave =  'Naungan/ITDEC/' . $request->event . '/' . $fileName;
                     $documents->fileDocument = $fileSave;
@@ -254,6 +273,10 @@ class DocumentController extends Controller
                 return back();
             }
             // Hapus file lama jika ada
+            if (Storage::disk('google')->exists('FromLaravel/' . $document->fileDocument)) {
+                Storage::disk('google')->delete('FromLaravel/' . $document->fileDocument);
+            }
+
             if (Storage::disk('public')->exists($document->fileDocument)) {
                 Storage::disk('public')->delete($document->fileDocument);
             }
@@ -267,18 +290,21 @@ class DocumentController extends Controller
                 $departName = $department->name;
                 if ($request->eventCategory == 'Proker') {
                     if ($request->category == 'Surat Keluar' && !$request->has('needCategory')) {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $departName . '/Proker/Surat/' . $fileName, $file);
                         $file->storeAs("{$categoryDoc}/{$departName}/Proker/Surat/", $fileName, 'public');
                         $fileSave = $categoryDoc . '/' . $departName . '/Proker/Surat/' . $fileName;
                         $document->fileDocument = $fileSave;
                     }
                 } elseif ($request->eventCategory == 'Agenda') {
                     if ($request->category == 'Surat Keluar') {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $departName . '/Agenda/' . $fileName, $file);
                         $file->storeAs("{$categoryDoc}/{$departName}/Agenda/", $fileName, 'public');
                         $fileSave = $categoryDoc . '/' . $departName . '/Agenda/' . $fileName;
                         $document->fileDocument = $fileSave;
                     }
                 }
                 if (Str::startsWith($request->category, 'Proposal') || Str::startsWith($request->category, 'LPJ')) {
+                    Gdrive::put('FromLaravel/HMTI/Proposal_LPJ/' . $departName . '/' . $request->event . '/' . $fileName, $file);
                     $file->storeAs("/Proposal_LPJ/{$departName}/{$request->event}", $fileName, 'public');
                     $fileSave = 'Proposal_LPJ' . '/' . $departName . '/' . $request->event  . '/' . $fileName;
                     $document->fileDocument = $fileSave;
@@ -287,10 +313,12 @@ class DocumentController extends Controller
                 if ($request->category == 'Surat Keluar' && $request->has('allotment')) {
                     // Selain 
                     if ($request->other_needCategory == null) {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $request->allotment . '/' . $fileName, $file);
                         $file->storeAs("{$categoryDoc}/{$request->allotment}/", $fileName, 'public');
                         $fileSave = $categoryDoc . '/' . $request->allotment . '/' . $fileName;
                         $document->fileDocument = $fileSave;
                     } else {
+                        Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $request->other_needCategory . '/' . $fileName, $file);
                         $file->storeAs("{$categoryDoc}/{$request->other_needCategory}/", $fileName, 'public');
                         $fileSave = $categoryDoc . '/' .  $request->other_needCategory . '/' . $fileName;
                         $document->fileDocument = $fileSave;
@@ -302,8 +330,19 @@ class DocumentController extends Controller
                 } else {
                     $senderName = $request->other_sender;
                 }
-                $file->storeAs("{$categoryDoc}/{$senderName}/", $fileName, 'public');
-                $fileSave = $categoryDoc . '/' . $senderName . '/' . $fileName;
+                Gdrive::put('FromLaravel/HMTI/' . $categoryDoc . '/' . $senderName . '/' . $fileName, $file);
+                $file->storeAs("HMTI/{$categoryDoc}/{$senderName}/", $fileName, 'public');
+                $fileSave = 'HMTI/' . $categoryDoc . '/' . $senderName . '/' . $fileName;
+                $document->fileDocument = $fileSave;
+            } elseif (Str::endsWith($request->category, 'WRI')) {
+                Gdrive::put('FromLaravel/Naungan/WRI/' . $request->event . '/' . $fileName, $file);
+                $file->storeAs("Naungan/WRI/{$request->event}", $fileName, 'public');
+                $fileSave =  'Naungan/WRI/' . $request->event . '/' . $fileName;
+                $document->fileDocument = $fileSave;
+            } elseif (Str::endsWith($request->category, 'ITDEC')) {
+                Gdrive::put('FromLaravel/Naungan/ITDEC/' . $request->event . '/' . $fileName, $file);
+                $file->storeAs("Naungan/ITDEC/{$request->event}", $fileName, 'public');
+                $fileSave =  'Naungan/ITDEC/' . $request->event . '/' . $fileName;
                 $document->fileDocument = $fileSave;
             }
         }

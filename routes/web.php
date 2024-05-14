@@ -27,6 +27,8 @@ Route::get('/', function () {
 Route::get('status', [UserController::class, 'userOnlineStatus']);
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.perform');
+Route::get('/login/{provider}/redirect', [LoginController::class, 'redirectToProvider'])->name('redirectProvider');
+Route::get('/login/{provider}/callback', [LoginController::class, 'handleProviderCallback'])->name('callbackProvider');
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
@@ -72,6 +74,7 @@ Route::group(['middleware' => 'auth'], function () {
             ]);
             Route::get('/suratMasuk', [DocumentController::class, 'suratMasuk'])->name('doc.suratMasuk');
             Route::get('/suratKeluar', [DocumentController::class, 'suratKeluar'])->name('doc.suratKeluar');
+            Route::get('/suratKeluar/{id}', [DocumentController::class, 'showSuratKeluar'])->name('doc.showSuratKeluar');
             Route::get('/proposalHmti', [DocumentController::class, 'proposalHmti'])->name('doc.proposalHmti');
             Route::get('/proposalNaungan', [DocumentController::class, 'proposalNaungan'])->name('doc.proposalNaungan');
             Route::get('/lpjHmti', [DocumentController::class, 'lpjHmti'])->name('doc.lpjHmti');

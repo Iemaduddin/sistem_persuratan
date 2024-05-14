@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use App\Providers\RouteServiceProvider;
+use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
 class LoginController extends Controller
@@ -40,6 +42,10 @@ class LoginController extends Controller
     {
         return view('auth.login');
     }
+    public function redirectToProvider($provider)
+    {
+        return Socialite::driver($provider)->redirect();
+    }
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -51,7 +57,6 @@ class LoginController extends Controller
             Auth::attempt(['email' => $credentials['login'], 'password' => $credentials['password']]) ||
             Auth::attempt(['username' => $credentials['login'], 'password' => $credentials['password']])
         ) {
-
             // Periksa apakah pengguna aktif
             if (auth()->user()->status_keaktifan == 'Aktif') {
                 $request->session()->regenerate();
@@ -77,6 +82,30 @@ class LoginController extends Controller
         return back()->withErrors([
             'login' => 'Username/Email atau Password Anda Salah!',
         ])->withInput();
+    }
+    public function handleProviderCallback($provider)
+    {
+        // Autentikasi menggunakan OAuth Google/Github
+        $userFromProvider = Socialite::driver($provider)->user();
+        $userFromDatabase = User::where('email', $userFromProvider->email)->first();
+
+        if (!$userFromDatabase) {
+            $usernameProvider = explode("@", $userFromProvider->email);
+            $newUser  = new User([
+                'nama' => $userFromProvider->name,
+                'email' => $userFromProvider->email,
+                'username' => $usernameProvider[0],
+                'role_id' => 3,
+            ]);
+
+            $newUser->save();
+            session()->regenerate();
+            Auth::login($newUser);
+            return redirect()->route('dashboard_oc');
+        }
+        session()->regenerate();
+        Auth::login($userFromDatabase);
+        return redirect()->route('dashboard_oc');
     }
     public function logout(Request $request)
     {
